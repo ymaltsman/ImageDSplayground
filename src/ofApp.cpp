@@ -3,13 +3,12 @@
 #define ma_mod(a, n) ((a%n)+n)%n
 //--------------------------------------------------------------
 void ofApp::setup(){
-	glEnable(GL_DEPTH_TEST);
-	ofSetFrameRate(20);
+	ofSetVerticalSync(true);
 	trans_ON = 0;
 	max_diff = 0;
 	pp = 0;
 	//choose transition function here, 'Add' or 'mul5'
-	trans = 'sqr';
+	trans = 'Add';
 
 	W = ofGetWidth();
 	H = ofGetHeight();
