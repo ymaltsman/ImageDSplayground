@@ -12,21 +12,21 @@ void ofApp::setup(){
 	pp = 0;
 
 	//choose transition function here, 'Add', 'mul5', or 'sqr'
-	trans = 'sqr';
+	trans = 'Add';
 
 	W = ofGetWidth(); 
 	H = ofGetHeight();
 
 	//work with just one image or multiple
-	MODE = "Multiple"; //"One" or "Multiple"
-	string filename = "cluster471.png";
+	MODE = "One"; //"One" or "Multiple"
+	string filename = "gate.jpg";
 
 	//load images
 	if (MODE == "Multiple") {
 		ofDirectory dir("data");
 		dir.listDir();
 		D = dir.size();
-		for (int i = 7; i < dir.size(); i++) {
+		for (int i = 15; i < dir.size(); i++) {
 			string name = dir.getName(i);
 			ofImage imgi;
 			imgi.load(name);
@@ -47,7 +47,7 @@ void ofApp::setup(){
 
 	constructTable(); //create table for multiplicative transitions
 
-	m = 1;
+	m = 1; //for lemma14()
 }
 
 //--------------------------------------------------------------
@@ -66,16 +66,15 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
 	img.draw(0, 0, W, H); //draw image to screen
-	
 }
 
 void ofApp::UDS() {
 	/*
 	* Apply update function to each pixel
 	*/
-	for (int x = 0; x < W*3; x += 3) {
-		for (int y = 0; y < H*3; y += 3) {
-			col_idx = (y * W) + (x);
+	for (int x = 0; x < W; x ++) {
+		for (int y = 0; y < H; y ++) {
+			col_idx = 3*(y * W + x);
 
 			//current pixel values
 			r = src[col_idx]; 
@@ -84,21 +83,26 @@ void ofApp::UDS() {
 
 
 			//create params here
-			char vector1[3] = { 2, 7,  4};
-			char vector2[3] = { 3,7, 9 };
-			char matrix1[3][3] = { {1,9,0},{0,1,1},{-2,0,1} };
-			niceMatrix(matrix1);
+			char addparams[3] = { 10, -6, 15};
+			char multparams[3] = { 2,3, 201 };
+			char matparams[3][3] = { {3,4,6},{10,7,12},{2,44,9} };
+			//niceMatrix(matrix1);
 			
 			//set update function here by uncommenting one or more functions
-			add(vector1);
-			//Matmul(matrix1);
-			//img.update();
-			//add(vector1);
-			//mult(vector2);
-			//add(vector1);
+			//add(addparams);
+			//Matmul(matparams);
+			//mult(multparams);
 			//affine();
-			//wehd();
+			//period();
 			//lemma14();
+			//circles();
+			//diamond();
+			//porabs();
+
+			//update pixel
+			src[col_idx] = r;
+			src[col_idx + 1] = g;
+			src[col_idx + 2] = b;
 		}
 	}
 	
@@ -178,7 +182,8 @@ void ofApp::chooseT() {
 			addT(2);
 		}
 		else if (trans == 'mul5') {
-			mult5();
+			//set parameter for multiplicative transition here
+			mult5(3);
 		}
 		else if (trans == 'sqr') {
 			sqrdiff();
@@ -197,7 +202,6 @@ void ofApp::chooseT() {
 
 //transition functions
 void ofApp::addT(int a) {
-	//a += (a + 1) % 2;
 	int diff = abs(next[col_idx] - src[col_idx]);
 	if (diff > max_diff) {
 		max_diff = diff;
@@ -207,13 +211,13 @@ void ofApp::addT(int a) {
 	}
 }
 
-void ofApp::mult5() {
+void ofApp::mult5(int m = 5) {
 	int diff = abs(next[col_idx] - src[col_idx]);
 	if (diff > max_diff) {
 		max_diff = diff;
 	}
 	if (diff != 0) {
-		src[col_idx] = ma_mod(src[col_idx] * 5, 256);
+		src[col_idx] = ma_mod(src[col_idx] * m, 256);
 	}
 }
 
@@ -232,24 +236,23 @@ void ofApp::sqrdiff() {
 //-----Update functions
 void ofApp::add(char params[3]) {
 
-	src[col_idx] = ma_mod(r + params[0], 256);
-	src[col_idx + 1] = ma_mod(g + params[1], 256);
-	src[col_idx + 2] = ma_mod(b + params[2], 256);
+	r = ma_mod(r + params[0], 256);
+	g = ma_mod(g + params[1], 256);
+	b = ma_mod(b + params[2], 256);
 
-	r = src[col_idx];
-	g = src[col_idx + 1];
-	b = src[col_idx + 2];
 }
 
 void ofApp::mult(char params[3]) {
 
-	src[col_idx] = ma_mod((r * params[0]),256);
-	src[col_idx + 1] = ma_mod((g * params[1]), 256);
-	src[col_idx + 2] = ma_mod((b * params[2]), 256);
+	r = ma_mod((r * params[0]),256);
+	g = ma_mod((g * params[1]), 256);
+	b = ma_mod((b * params[2]), 256);
 
 }
 
+
 void ofApp::niceMatrix(char params[3][3]) {
+	//make matrix A and I-A both invertible
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			params[i][j] = ma_mod(params[i][j] * (-8), 256);
@@ -262,43 +265,78 @@ void ofApp::niceMatrix(char params[3][3]) {
 
 void ofApp::Matmul(char params[3][3]) {
 	char col[3] = { r, g, b };
-
+	char newcol[3];
 	for (int i = 0; i < 3; i++) {
-		src[col_idx + i] = 0;
+		newcol[i] = 0;
 		for (int j = 0; j < 3; j++) {
-			src[col_idx + i] = ma_mod((src[col_idx + i] + (params[i][j] * col[j])), 256);
+			newcol[i] = ma_mod((newcol[i] + (params[i][j] * col[j])), 256);
 		}
 	}
-	r = src[col_idx];
-	g = src[col_idx + 1];
-	b = src[col_idx + 2];
+	r = newcol[0];
+	g = newcol[1];
+	b = newcol[2];
 }
 
 void ofApp::affine() {
-	int xynullcline = r * r + g * g + b*b - 1;
-	int znullcline = b - r * r - g * g;
-	src[col_idx] = ma_mod(r + xynullcline, 256);
-	src[col_idx+1] = ma_mod(g + xynullcline, 256);
-	src[col_idx + 2] = ma_mod(b + xynullcline, 256);
+	int znullcline = r * r + g * g + b*b - 100; //equation describing sphere of radius 100
+	char newcol[3];
+	newcol[0] = ma_mod(r + 1, 256);
+	newcol[1] = ma_mod(g + znullcline, 256);
+	newcol[2] = ma_mod(b - 3, 256);
 
+	r = newcol[0];
+	g = newcol[1];
+	b = newcol[2];
 }
 
-void ofApp::wehd() {
+void ofApp::period() {
+	//have to check in alggeom book to name this
 	int rtraj = 255 * cos(b / 255);
 	int gtraj = 255 * sin(b / 255);
-	src[col_idx] = ma_mod(r + rtraj, 256);
-	src[col_idx + 1] = ma_mod(g + gtraj, 256);
-	src[col_idx+2] = ma_mod(b + 1,256);
+	r = ma_mod(r + rtraj, 256);
+	g = ma_mod(g + gtraj, 256);
+	b = ma_mod(b + 1,256);
 }
 
 void ofApp::lemma14() {
-	src[col_idx] = ma_mod(m * r + 1, 256);
-	src[col_idx + 1] = ma_mod(m * g + 1, 256);
-	src[col_idx + 2] = ma_mod(m * b + 1, 256);
+	//I do not remember where this is from or why it's called lemma 14 but it's pretty cool
+	r = ma_mod(m * r + 1, 256);
+	g = ma_mod(m * g + 1, 256);
+	b = ma_mod(m * b + 1, 256);
 	m += 2;
 }
 
+void ofApp::circles(int r1 = 100, int r2 = 100, int r3 = 100) {
+	//should include params for radii
+	char newcol[3];
+	newcol[0] = ma_mod(g*g + b*b - r1 + r, 256);
+	newcol[1] = ma_mod(r*r + b*b - r2 + g, 256);
+	newcol[2] = ma_mod(g*g + r*r - r3 + b, 256);
+	r = newcol[0];
+	g = newcol[1];
+	b = newcol[2];
 
+}
+
+void ofApp::diamond() {
+	if ((r >= 128 and g < 128) or (r < 128 and g >= 128)) {
+		r = ma_mod(r + 1, 256);
+		g = ma_mod(g + 1, 256);
+	}
+	else {
+		r = ma_mod(r - 1, 256);
+		g = ma_mod(g - 1, 256);
+	}
+}
+
+void ofApp::porabs() {
+	int rnullcline = (-1) * (r - 128) * (r - 128);
+	int gnullcline = (-1) * (r - 128) * (r + 128);
+	int newr = ma_mod(rnullcline + r, 256);
+	g = ma_mod(gnullcline + g, 256);
+	r = newr;
+
+}
 
 
 //-----Interfacing events-----//
@@ -366,3 +404,4 @@ void ofApp::gotMessage(ofMessage msg){
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
 }
+
