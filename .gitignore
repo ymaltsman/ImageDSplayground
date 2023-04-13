@@ -7,3 +7,5 @@
 # Folder to not ignore
 !/src/
 !/bin/
+bin/*
+!bin/data

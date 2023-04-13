@@ -183,7 +183,7 @@ void ofApp::chooseT() {
 		}
 		else if (trans == 'mul5') {
 			//set parameter for multiplicative transition here
-			mult5(3);
+			multT(3);
 		}
 		else if (trans == 'sqr') {
 			sqrdiff();
@@ -211,7 +211,7 @@ void ofApp::addT(int a) {
 	}
 }
 
-void ofApp::mult5(int m = 5) {
+void ofApp::multT(int m) {
 	int diff = abs(next[col_idx] - src[col_idx]);
 	if (diff > max_diff) {
 		max_diff = diff;
